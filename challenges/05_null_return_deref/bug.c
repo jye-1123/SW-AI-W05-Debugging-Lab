@@ -43,12 +43,20 @@ typedef struct {
 } Config;
 
 static void cfg_set(Config *c, const char *k, const char *v) {
-    if (c->n < MAX_KV) { c->keys[c->n] = k; c->vals[c->n] = v; c->n++; }
+    if (c->n < MAX_KV) 
+    { 
+        c->keys[c->n] = k; 
+        c->vals[c->n] = v;
+        c->n++; 
+    }
 }
 
 static const char *cfg_get(const Config *c, const char *k) {
     for (int i = 0; i < c->n; i++)
-        if (strcmp(c->keys[i], k) == 0) return c->vals[i];
+        if (strcmp(c->keys[i], k) == 0) /* strcmp는 대/소문자 구분없이 두 문자가 일치하면 0 */
+        {
+            return c->vals[i];
+        }
     return NULL;                       /* 없는 키 → NULL */
 }
 
@@ -64,7 +72,13 @@ static void expand(const Config *c, const char *tmpl, char *out, size_t outcap) 
             memcpy(key, p + 2, kl);
             key[kl] = '\0';
 
-            const char *v = cfg_get(c, key);      
+            const char *v = cfg_get(c, key);
+            if (v == NULL)
+            {
+                p = end + 1;
+                continue;
+            }
+            
             size_t vl = strlen(v);                 
             if (o + vl < outcap) { memcpy(out + o, v, vl); o += vl; }
             p = end + 1;
@@ -82,7 +96,7 @@ int main(void) {
      *   tip 1. 초기화자에 하나라도 값을 주면, 명시하지 않은 나머지 멤버는 전부 0 으로
      *          채워진다. 즉 keys[], vals[] 배열도 모두 NULL 로 초기화된다.
      *   tip 2. 만약 그냥 "Config cfg;" 로만 뒀다면 지역 변수라 n·keys·vals 가 쓰레기 값이다.
-     *   생각해보기: n 이 쓰레기 값이면 cfg_set/cfg_get 에서 무슨 일이 벌어질까?
+     *   생각해보기: n 이 쓰레기 값이면 cfg_set/cfg_get 에서 무슨 일이 벌어질까? -> 기존 쓰레기값 그대로 가지고 있음
      *               */
     Config cfg = { .n = 0 };
     cfg_set(&cfg, "host", "example.com");
@@ -94,7 +108,14 @@ int main(void) {
      *          실제 치환은 런타임에 expand 함수 안에서 키를 찾아 값을 끼워넣는 방식으로 일어난다.
      *   tip 2. cfg_get("path") 는 등록되지 않은 키라 NULL 을 돌려준다.
      *   생각해보기: 설정에 없는 키(${path})를 만나면 expand() 는 어떤 값을 받게 되고,
-     *               그 값을 검사 없이 strlen/복사에 쓰면 무슨 일이 벌어질까?
+     *               그 값을 검사 없이 strlen/복사에 쓰면 무슨 일이 벌어질까? 
+     * -> strlen는 전달받은 메모리 주소에서 시작해서 널 나올때까지의 거리를 측정함.
+     * 근데 인자로 NULL 받으면 0번지 메모리 주소에 접근해 문자 읽으려고 시도.
+     * 해당 주소는 OS에 의해 보호 되어 있어 접근 권한 오류 발생
+     * strlen은 내부적으로 인자가 널 포인터인지 검사하지 않음
+     * 그렇기 때문에 strlen 호출 전에는 반드시 NULL이 아닌지 확인하는 예외 처리 코드가 필요하게 됨.
+     * strlen이나 strcpy는 주소 찾아가 글자 읽어야 하는데 널 주면 길 잃어버림.
+     * 결국 시스템은 존재하지 않는 메모리 주소 접근하려 했다 판단해 프로그램 강종(Segmentation Fault)
      *               (힌트: "값이 없다"는 NULL 이지 빈 문자열 ""이 아니다) */
     const char *tmpl = "http://${host}:${port}/${path}/index.html";
     char out[256];
