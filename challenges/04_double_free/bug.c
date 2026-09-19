@@ -101,14 +101,50 @@ static void directory_dump(Directory *d) {
 
 static void directory_free(Directory *d) {
     for (int i = 0; i < d->count; i++) {
-        free(d->by_id[i]->name);
-        free(d->by_id[i]);                 
-    }
-    for (int i = 0; i < d->count; i++) {
-        free(d->by_name[i]);               
+        if (d->by_id[i] != NULL)
+        {
+            free(d->by_id[i]->name);
+            free(d->by_id[i]);
+
+            d->by_id[i]->name = NULL;
+            d->by_id[i] = NULL;
+        }   
     }
     d->count = 0;
 }
+
+// static void directory_free(Directory *d) {
+//     for (int i = 0; i < d->count; i++) {
+//         free(d->by_id[i]->name);
+//         d->by_id[i]->name = NULL;
+//         free(d->by_id[i]);
+//         d->by_id[i] = NULL;
+                    
+//     }
+//     for (int i = 0; i < d->count; i++) {
+//         if (d->by_id[i] != NULL)
+//         {
+//             free(d->by_name[i]->id);
+//             d->by_id[i]->id = NULL; 
+//         }             
+//     }
+//     d->count = 0;
+// }
+
+// static void directory_free(Directory *d) {   //디버그 Test용 함수
+//     for (int i = 0; i < d->count; i++) {
+//         free(d->by_id[i]->name);
+//         d->by_id[i]->name = NULL;
+//         free(d->by_id[i]->id);
+//         d->by_id[i]->id = NULL;
+                    
+//     }
+//     for (int i = 0; i < d->count; i++) {
+//         free(d->by_id[i]);
+//         d->by_id[i] = NULL;            
+//     }
+//     d->count = 0;
+// }
 
 int main(void) {
     Directory dir = { .count = 0 };
