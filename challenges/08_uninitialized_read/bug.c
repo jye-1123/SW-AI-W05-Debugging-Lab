@@ -18,7 +18,7 @@
  *   채운 행만 안전하게 합산해 출력.
  *
  * [증상]
- *   행 포인터 표를 malloc 으로 잡는데, malloc 은 메모리를 0 으로 초기화하지 않는다.
+ *   행 포인터 표를 malloc 으로 잡는데, malloc 은 메모리`를 0 으로 초기화하지 않는다.
  *   게다가 이 표는 방금 free 된(=쓰레기로 채워진) 청크를 재사용하므로, 채우지 않은
  *   칸은 NULL 이 아니라 0xABAB.. 같은 '그럴듯한 쓰레기 포인터'가 된다.
  *   합산 루프가 채우지 않은 행까지 rows[i][j] 로 역참조하면 무효 주소 접근 → SIGSEGV.
@@ -73,7 +73,7 @@ static void dirty_heap(void) {
 
 static int **make_matrix(void) {
 
-    int **rows = malloc(ROWS * sizeof(int *));
+    int **rows = calloc(ROWS, sizeof(int *));
     if (!rows) { perror("malloc"); exit(1); }
 
     for (int i = 0; i < ROWS; i += 2) {
@@ -87,6 +87,7 @@ static int **make_matrix(void) {
 static long row_sum(int **rows, int nrows) {
     long total = 0;
     for (int i = 0; i < nrows; i++) {
+        if (!rows[i]) continue;
         for (int j = 0; j < COLS; j++) {
             total += rows[i][j];      
         }

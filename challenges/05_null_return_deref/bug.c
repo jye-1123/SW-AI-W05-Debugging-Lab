@@ -47,7 +47,7 @@ static void cfg_set(Config *c, const char *k, const char *v) {
     { 
         c->keys[c->n] = k; 
         c->vals[c->n] = v;
-        c->n++; 
+        c->n++;
     }
 }
 
